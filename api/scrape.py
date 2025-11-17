@@ -13,19 +13,29 @@ class handler(BaseHTTPRequestHandler):
             data = json.loads(post_data)
 
             zip_code = data.get('zipCode')
+            tag_filters = data.get('tagFilters', [])
+            tag_match_type = data.get('tagMatchType', 'any')
+            tag_exclude = data.get('tagExclude', [])
 
             if not zip_code:
                 self.send_error(400, "ZIP code is required")
                 return
 
             print(f"Scraping ZIP code: {zip_code}")
+            if tag_filters:
+                print(f"Tag filters: {tag_filters} (match type: {tag_match_type})")
+            if tag_exclude:
+                print(f"Excluding tags: {tag_exclude}")
 
-            # Scrape properties
+            # Scrape properties with tag filtering
             properties = scrape_property(
                 location=zip_code,
                 listing_type="for_sale",
                 past_days=365,  # Get last year of listings
-                mls_only=True   # Only MLS listings have agent info
+                mls_only=True,  # Only MLS listings have agent info
+                tag_filters=tag_filters if tag_filters else None,
+                tag_match_type=tag_match_type,
+                tag_exclude=tag_exclude if tag_exclude else None
             )
 
             # Convert to dict
@@ -69,7 +79,8 @@ class handler(BaseHTTPRequestHandler):
                     'beds': prop.get('beds'),
                     'baths': prop.get('full_baths'),
                     'sqft': prop.get('sqft'),
-                    'property_url': prop.get('property_url')
+                    'property_url': prop.get('property_url'),
+                    'tags': prop.get('tags', [])
                 })
 
             # Calculate frustration score for each agent

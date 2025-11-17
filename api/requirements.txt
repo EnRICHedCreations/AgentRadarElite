@@ -1,2 +1,2 @@
-homeharvest>=0.4.0
+git+https://github.com/EnRICHedCreations/HomeHarvestElite.git
 pandas

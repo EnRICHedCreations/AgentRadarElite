@@ -19,6 +19,7 @@ interface Agent {
     baths: number;
     sqft: number;
     property_url?: string;
+    tags?: string[];
   }>;
 }
 
@@ -37,6 +38,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ScrapeResult | null>(null);
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState('');
+  const [tagFilters, setTagFilters] = useState<string[]>([]);
+  const [tagExclude, setTagExclude] = useState<string[]>([]);
+  const [tagMatchType, setTagMatchType] = useState<'any' | 'all' | 'exact'>('any');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +61,12 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ zipCode }),
+        body: JSON.stringify({
+          zipCode,
+          tagFilters: tagFilters.length > 0 ? tagFilters : undefined,
+          tagMatchType,
+          tagExclude: tagExclude.length > 0 ? tagExclude : undefined
+        }),
       });
 
       const data = await response.json();
@@ -75,27 +86,44 @@ export default function Home() {
   const exportToCSV = () => {
     if (!results || results.agents.length === 0) return;
 
+    // Export detailed listings with tags
     const headers = [
       'Agent Name',
-      'Email',
-      'Phone',
+      'Agent Email',
+      'Agent Phone',
       'Broker',
       'Office',
-      'Stale Listings',
-      'Avg Days on Market',
+      'Property Address',
+      'List Price',
+      'Days on MLS',
+      'Beds',
+      'Baths',
+      'Sqft',
+      'Tags',
       'Frustration Score'
     ];
 
-    const rows = results.agents.map(agent => [
-      agent.agent_name,
-      agent.agent_email,
-      agent.agent_phone,
-      agent.broker_name,
-      agent.office_name,
-      agent.stale_listing_count.toString(),
-      agent.avg_days_on_market.toString(),
-      agent.frustration_score.toString()
-    ]);
+    const rows: string[][] = [];
+
+    results.agents.forEach(agent => {
+      agent.listings.forEach(listing => {
+        rows.push([
+          agent.agent_name,
+          agent.agent_email,
+          agent.agent_phone,
+          agent.broker_name,
+          agent.office_name,
+          listing.address,
+          listing.list_price?.toString() || 'N/A',
+          listing.days_on_mls?.toString() || 'N/A',
+          listing.beds?.toString() || 'N/A',
+          listing.baths?.toString() || 'N/A',
+          listing.sqft?.toString() || 'N/A',
+          listing.tags?.join('; ') || 'None',
+          agent.frustration_score.toString()
+        ]);
+      });
+    });
 
     const csv = [
       headers.join(','),
@@ -108,6 +136,37 @@ export default function Home() {
     a.href = url;
     a.download = `frustrated-agents-${results.zip_code}-${Date.now()}.csv`;
     a.click();
+  };
+
+  const addTag = (isExclude: boolean = false) => {
+    if (!tagInput.trim()) return;
+
+    // Split by comma and process multiple tags
+    const tags = tagInput
+      .split(',')
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0);
+
+    if (isExclude) {
+      const newTags = tags.filter(tag => !tagExclude.includes(tag));
+      if (newTags.length > 0) {
+        setTagExclude([...tagExclude, ...newTags]);
+      }
+    } else {
+      const newTags = tags.filter(tag => !tagFilters.includes(tag));
+      if (newTags.length > 0) {
+        setTagFilters([...tagFilters, ...newTags]);
+      }
+    }
+    setTagInput('');
+  };
+
+  const removeTag = (tag: string, isExclude: boolean = false) => {
+    if (isExclude) {
+      setTagExclude(tagExclude.filter(t => t !== tag));
+    } else {
+      setTagFilters(tagFilters.filter(t => t !== tag));
+    }
   };
 
   const getFrustrationColor = (score: number) => {
@@ -132,28 +191,143 @@ export default function Home() {
 
         {/* Search Form */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <form onSubmit={handleSearch} className="flex gap-4 items-end">
-            <div className="flex-1">
-              <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-2">
-                ZIP Code
-              </label>
-              <input
-                type="text"
-                id="zipCode"
-                value={zipCode}
-                onChange={(e) => setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                placeholder="Enter 5-digit ZIP code"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                maxLength={5}
-              />
+          <form onSubmit={handleSearch}>
+            <div className="flex gap-4 items-end mb-4">
+              <div className="flex-1">
+                <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-2">
+                  ZIP Code
+                </label>
+                <input
+                  type="text"
+                  id="zipCode"
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                  placeholder="Enter 5-digit ZIP code"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  maxLength={5}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+              >
+                {loading ? 'Searching...' : 'Find Agents'}
+              </button>
             </div>
+
+            {/* Advanced Filters Toggle */}
             <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
-              {loading ? 'Searching...' : 'Find Agents'}
+              {showAdvanced ? '− Hide' : '+ Show'} Advanced Tag Filters
             </button>
+
+            {/* Advanced Tag Filters */}
+            {showAdvanced && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Include Tags */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Include Tags (properties must have these)
+                    </label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag(false))}
+                        placeholder="e.g., swimming_pool, garage_2_or_more"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addTag(false)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {tagFilters.map(tag => (
+                        <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag, false)}
+                            className="hover:text-blue-900"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    {tagFilters.length > 0 && (
+                      <div className="mt-2">
+                        <label className="text-xs text-gray-600">Match Type:</label>
+                        <select
+                          value={tagMatchType}
+                          onChange={(e) => setTagMatchType(e.target.value as 'any' | 'all' | 'exact')}
+                          className="ml-2 px-2 py-1 border border-gray-300 rounded text-xs"
+                        >
+                          <option value="any">Any (OR)</option>
+                          <option value="all">All (AND)</option>
+                          <option value="exact">Exact Match</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Exclude Tags */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Exclude Tags (properties must NOT have these)
+                    </label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag(true))}
+                        placeholder="e.g., fixer_upper"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-red-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addTag(true)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {tagExclude.map(tag => (
+                        <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag, true)}
+                            className="hover:text-red-900"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                  <p className="text-xs text-gray-600">
+                    <strong>Common tags:</strong> swimming_pool, garage_2_or_more, fireplace, hardwood_floors, new_construction,
+                    energy_efficient, spa_or_hot_tub, big_yard, modern_kitchen, fixer_upper, single_story, two_or_more_stories
+                  </p>
+                </div>
+              </div>
+            )}
           </form>
         </div>
 
@@ -308,6 +482,18 @@ export default function Home() {
                                   >
                                     View on Realtor.com →
                                   </a>
+                                )}
+                                {listing.tags && listing.tags.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {listing.tags.map((tag, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs"
+                                      >
+                                        {tag.replace(/_/g, ' ')}
+                                      </span>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
                             ))}
