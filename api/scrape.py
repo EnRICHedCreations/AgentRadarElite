@@ -67,11 +67,11 @@ class Handler(BaseHTTPRequestHandler):
                 'preset': preset,
                 'require_agent_email': True,  # MUST have agent contact
                 'mls_only': True,
-                'past_days': 180,  # Reduced from 365 to speed up
+                'past_days': 365,
                 'enable_advanced_sort': True,
                 'add_derived_fields': True,
                 'clean_data': True,
-                'limit': 100  # Reduced from 200 to avoid timeout
+                'limit': 200
             }
 
             # Add optional filters
