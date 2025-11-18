@@ -162,79 +162,111 @@ class Handler(BaseHTTPRequestHandler):
             agents_list = []
 
             for idx, agent in wholesale_agents.iterrows():
-                agent_name = agent['agent_name']
+                try:
+                    agent_name = agent['agent_name']
 
-                # Get agent's properties
-                agent_props = ranked_props[ranked_props['agent_name'] == agent_name]
+                    # Get agent's properties
+                    agent_props = ranked_props[ranked_props['agent_name'] == agent_name]
 
-                # Get specialization data
-                spec = specialization[specialization['agent_name'] == agent_name]
+                    # Get specialization data
+                    spec = specialization[specialization['agent_name'] == agent_name]
 
-                # Build listings array
-                listings = []
-                for _, prop in agent_props.iterrows():
-                    listings.append({
-                        'address': f"{prop.get('full_street_line', '')}, {prop.get('city', '')}, {prop.get('state', '')} {prop.get('zip_code', '')}".strip(),
-                        'list_price': float(prop['list_price']) if pd.notna(prop.get('list_price')) else None,
-                        'investment_score': float(prop['investment_score']) if pd.notna(prop.get('investment_score')) else None,
-                        'price_per_sqft': float(prop['price_per_sqft']) if pd.notna(prop.get('price_per_sqft')) else None,
-                        'days_on_mls': int(prop['days_on_mls']) if pd.notna(prop.get('days_on_mls')) else None,
-                        'beds': int(prop['beds']) if pd.notna(prop.get('beds')) else None,
-                        'baths': float(prop['full_baths']) if pd.notna(prop.get('full_baths')) else None,
-                        'sqft': int(prop['sqft']) if pd.notna(prop.get('sqft')) else None,
-                        'lot_sqft': int(prop['lot_sqft']) if pd.notna(prop.get('lot_sqft')) else None,
-                        'year_built': int(prop['year_built']) if pd.notna(prop.get('year_built')) else None,
-                        'property_url': prop.get('property_url'),
-                        'tags': prop.get('tags', []) if pd.notna(prop.get('tags')) else []
-                    })
+                    # Build listings array
+                    listings = []
+                    for _, prop in agent_props.iterrows():
+                        try:
+                            # Helper function to safely get values
+                            def safe_get(series, key, default=''):
+                                try:
+                                    return series[key] if key in series.index and pd.notna(series[key]) else default
+                                except:
+                                    return default
 
-                # Find best deal
-                best_deal = None
-                if not agent_props.empty and 'investment_score' in agent_props.columns:
-                    # Filter out NaN scores before finding best
-                    scored_props = agent_props[agent_props['investment_score'].notna()]
-                    if not scored_props.empty:
-                        best_prop = scored_props.nlargest(1, 'investment_score').iloc[0]
-                        best_deal = {
-                            'address': f"{best_prop.get('full_street_line', '')}, {best_prop.get('city', '')}",
-                            'list_price': float(best_prop['list_price']) if pd.notna(best_prop.get('list_price')) else None,
-                            'investment_score': float(best_prop['investment_score']) if pd.notna(best_prop.get('investment_score')) else None,
-                            'property_url': best_prop.get('property_url')
-                        }
+                            listings.append({
+                                'address': f"{safe_get(prop, 'full_street_line')}, {safe_get(prop, 'city')}, {safe_get(prop, 'state')} {safe_get(prop, 'zip_code')}".strip(),
+                                'list_price': float(prop['list_price']) if 'list_price' in prop.index and pd.notna(prop['list_price']) else None,
+                                'investment_score': float(prop['investment_score']) if 'investment_score' in prop.index and pd.notna(prop['investment_score']) else None,
+                                'price_per_sqft': float(prop['price_per_sqft']) if 'price_per_sqft' in prop.index and pd.notna(prop['price_per_sqft']) else None,
+                                'days_on_mls': int(prop['days_on_mls']) if 'days_on_mls' in prop.index and pd.notna(prop['days_on_mls']) else None,
+                                'beds': int(prop['beds']) if 'beds' in prop.index and pd.notna(prop['beds']) else None,
+                                'baths': float(prop['full_baths']) if 'full_baths' in prop.index and pd.notna(prop['full_baths']) else None,
+                                'sqft': int(prop['sqft']) if 'sqft' in prop.index and pd.notna(prop['sqft']) else None,
+                                'lot_sqft': int(prop['lot_sqft']) if 'lot_sqft' in prop.index and pd.notna(prop['lot_sqft']) else None,
+                                'year_built': int(prop['year_built']) if 'year_built' in prop.index and pd.notna(prop['year_built']) else None,
+                                'property_url': safe_get(prop, 'property_url', None),
+                                'tags': prop['tags'] if 'tags' in prop.index and pd.notna(prop['tags']) else []
+                            })
+                        except Exception as listing_error:
+                            print(f"[AgentRadar Elite] Error processing listing: {str(listing_error)}")
+                            continue
 
-                # Build complete agent object
-                agent_data = {
-                    'agent_name': agent_name,
-                    'agent_email': agent.get('agent_email'),
-                    'agent_phone': agent.get('primary_phone'),
-                    'broker_name': agent.get('broker_name'),
-                    'office_name': agent.get('office_name'),
+                    # Find best deal
+                    best_deal = None
+                    if not agent_props.empty and 'investment_score' in agent_props.columns:
+                        # Filter out NaN scores before finding best
+                        scored_props = agent_props[agent_props['investment_score'].notna()]
+                        if not scored_props.empty:
+                            best_prop = scored_props.nlargest(1, 'investment_score').iloc[0]
 
-                    # Wholesale scoring
-                    'wholesale_score': float(agent.get('wholesale_score', 0)),
-                    'listing_count': int(agent.get('listing_count', 0)),
-                    'avg_price': float(agent.get('avg_price', 0)) if pd.notna(agent.get('avg_price')) else None,
-                    'min_price': float(agent.get('min_price', 0)) if pd.notna(agent.get('min_price')) else None,
-                    'max_price': float(agent.get('max_price', 0)) if pd.notna(agent.get('max_price')) else None,
+                            def safe_get_prop(series, key, default=''):
+                                try:
+                                    return series[key] if key in series.index and pd.notna(series[key]) else default
+                                except:
+                                    return default
 
-                    # Specialization
-                    'price_category': spec.iloc[0]['price_category'] if not spec.empty and 'price_category' in spec.columns else None,
-                    'avg_sqft': float(spec.iloc[0]['avg_sqft']) if not spec.empty and 'avg_sqft' in spec.columns and pd.notna(spec.iloc[0].get('avg_sqft')) else None,
-                    'avg_beds': float(spec.iloc[0]['avg_beds']) if not spec.empty and 'avg_beds' in spec.columns and pd.notna(spec.iloc[0].get('avg_beds')) else None,
-                    'avg_baths': float(spec.iloc[0]['avg_baths']) if not spec.empty and 'avg_baths' in spec.columns and pd.notna(spec.iloc[0].get('avg_baths')) else None,
+                            best_deal = {
+                                'address': f"{safe_get_prop(best_prop, 'full_street_line')}, {safe_get_prop(best_prop, 'city')}",
+                                'list_price': float(best_prop['list_price']) if 'list_price' in best_prop.index and pd.notna(best_prop['list_price']) else None,
+                                'investment_score': float(best_prop['investment_score']) if 'investment_score' in best_prop.index and pd.notna(best_prop['investment_score']) else None,
+                                'property_url': safe_get_prop(best_prop, 'property_url', None)
+                            }
 
-                    # Investment insights
-                    'avg_investment_score': float(agent_props['investment_score'].mean()) if 'investment_score' in agent_props.columns else None,
-                    'best_deal': best_deal,
+                    # Helper to safely get agent values
+                    def safe_agent_get(series, key, default=None):
+                        try:
+                            return series[key] if key in series.index and pd.notna(series[key]) else default
+                        except:
+                            return default
 
-                    # Days on market
-                    'avg_days_on_market': float(agent_props['days_on_mls'].mean()) if 'days_on_mls' in agent_props.columns and not agent_props['days_on_mls'].isna().all() else None,
+                    # Build complete agent object
+                    agent_data = {
+                        'agent_name': agent_name,
+                        'agent_email': safe_agent_get(agent, 'agent_email'),
+                        'agent_phone': safe_agent_get(agent, 'primary_phone'),
+                        'broker_name': safe_agent_get(agent, 'broker_name'),
+                        'office_name': safe_agent_get(agent, 'office_name'),
 
-                    # Listings
-                    'listings': listings
-                }
+                        # Wholesale scoring
+                        'wholesale_score': float(safe_agent_get(agent, 'wholesale_score', 0)),
+                        'listing_count': int(safe_agent_get(agent, 'listing_count', 0)),
+                        'avg_price': float(safe_agent_get(agent, 'avg_price', 0)) if pd.notna(safe_agent_get(agent, 'avg_price')) else None,
+                        'min_price': float(safe_agent_get(agent, 'min_price', 0)) if pd.notna(safe_agent_get(agent, 'min_price')) else None,
+                        'max_price': float(safe_agent_get(agent, 'max_price', 0)) if pd.notna(safe_agent_get(agent, 'max_price')) else None,
 
-                agents_list.append(agent_data)
+                        # Specialization
+                        'price_category': spec.iloc[0]['price_category'] if not spec.empty and 'price_category' in spec.columns else None,
+                        'avg_sqft': float(spec.iloc[0]['avg_sqft']) if not spec.empty and 'avg_sqft' in spec.columns and pd.notna(spec.iloc[0]['avg_sqft']) else None,
+                        'avg_beds': float(spec.iloc[0]['avg_beds']) if not spec.empty and 'avg_beds' in spec.columns and pd.notna(spec.iloc[0]['avg_beds']) else None,
+                        'avg_baths': float(spec.iloc[0]['avg_baths']) if not spec.empty and 'avg_baths' in spec.columns and pd.notna(spec.iloc[0]['avg_baths']) else None,
+
+                        # Investment insights
+                        'avg_investment_score': float(agent_props['investment_score'].mean()) if 'investment_score' in agent_props.columns else None,
+                        'best_deal': best_deal,
+
+                        # Days on market
+                        'avg_days_on_market': float(agent_props['days_on_mls'].mean()) if 'days_on_mls' in agent_props.columns and not agent_props['days_on_mls'].isna().all() else None,
+
+                        # Listings
+                        'listings': listings
+                    }
+
+                    agents_list.append(agent_data)
+
+                except Exception as agent_error:
+                    print(f"[AgentRadar Elite] Error processing agent {agent.get('agent_name', 'Unknown')}: {str(agent_error)}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
 
             print(f"[AgentRadar Elite] Found {len(agents_list)} wholesale-friendly agents")
 
