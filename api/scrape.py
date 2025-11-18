@@ -103,7 +103,13 @@ class handler(BaseHTTPRequestHandler):
 
             # Scrape properties
             print(f"[AgentRadar Elite] Fetching properties...")
-            properties = scrape_property(**scrape_params)
+            print(f"[AgentRadar Elite] Scrape params: {scrape_params}")
+            try:
+                properties = scrape_property(**scrape_params)
+                print(f"[AgentRadar Elite] Scrape successful, got {len(properties)} properties")
+            except Exception as scrape_error:
+                print(f"[AgentRadar Elite] Scrape error: {str(scrape_error)}")
+                raise
 
             if properties.empty:
                 print(f"[AgentRadar Elite] No properties found")
@@ -124,16 +130,33 @@ class handler(BaseHTTPRequestHandler):
 
             # Get wholesale-friendly agents
             print(f"[AgentRadar Elite] Analyzing agents...")
-            wholesale_agents = get_wholesale_friendly_agents(
-                properties,
-                min_listings=min_listings
-            )
+            try:
+                wholesale_agents = get_wholesale_friendly_agents(
+                    properties,
+                    min_listings=min_listings
+                )
+                print(f"[AgentRadar Elite] Found {len(wholesale_agents)} wholesale agents")
+            except Exception as agent_error:
+                print(f"[AgentRadar Elite] Agent analysis error: {str(agent_error)}")
+                import traceback
+                traceback.print_exc()
+                raise
 
             # Get agent specialization
-            specialization = analyze_agent_specialization(properties)
+            try:
+                specialization = analyze_agent_specialization(properties)
+                print(f"[AgentRadar Elite] Specialization analysis complete")
+            except Exception as spec_error:
+                print(f"[AgentRadar Elite] Specialization error: {str(spec_error)}")
+                raise
 
             # Rank properties by investment potential
-            ranked_props = rank_by_investment_potential(properties)
+            try:
+                ranked_props = rank_by_investment_potential(properties)
+                print(f"[AgentRadar Elite] Property ranking complete")
+            except Exception as rank_error:
+                print(f"[AgentRadar Elite] Ranking error: {str(rank_error)}")
+                raise
 
             # Build agent data with ALL the details
             agents_list = []
