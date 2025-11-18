@@ -143,7 +143,7 @@ def filter_by_agent_contact(df: pd.DataFrame, require_email: bool = False, requi
     filtered = df.copy()
 
     if require_email:
-        filtered = filtered[filtered['agent_email'].notna() & (filtered['agent_email'] != '')]
+        filtered = filtered[(filtered['agent_email'].notna()) & (filtered['agent_email'] != '')]
 
     if require_phone:
         filtered = filtered[filtered['agent_phones'].notna()]
