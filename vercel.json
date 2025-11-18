@@ -1,9 +1,8 @@
 {
-  "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "framework": "nextjs",
   "functions": {
-    "api/scrape.py": {
+    "api/**/*.py": {
+      "runtime": "python3.9",
       "maxDuration": 60
     }
   }
