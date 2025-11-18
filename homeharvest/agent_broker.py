@@ -359,8 +359,8 @@ def get_contact_export(df: pd.DataFrame) -> pd.DataFrame:
 
     # Remove rows without any contact info
     contacts = contacts[
-        contacts['agent_email'].notna() |
-        contacts['agent_primary_phone'].notna()
+        (contacts['agent_email'].notna()) |
+        (contacts['agent_primary_phone'].notna())
     ]
 
     # Select and order columns
@@ -470,8 +470,8 @@ def get_wholesale_friendly_agents(df: pd.DataFrame, min_listings: int = 3) -> pd
 
     # Filter by having contact info
     agent_stats = agent_stats[
-        (agent_stats['agent_email'].notna()) |
-        (agent_stats['primary_phone'].notna())
+        ((agent_stats['agent_email'].notna()) |
+        (agent_stats['primary_phone'].notna()))
     ]
 
     # Calculate a "wholesale score" (lower avg price + more listings = higher score)
