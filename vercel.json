@@ -1,5 +1,10 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "functions": {
+    "api/scrape.py": {
+      "maxDuration": 60
+    }
+  }
 }

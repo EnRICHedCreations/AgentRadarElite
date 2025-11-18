@@ -17,7 +17,7 @@ from datetime import datetime
 import traceback
 import pandas as pd
 
-class handler(BaseHTTPRequestHandler):
+class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             # Get request body
