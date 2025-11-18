@@ -3,8 +3,8 @@ import json
 import sys
 import os
 
-# Add HomeHarvest Elite to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'HomeHarvest copy'))
+# Add HomeHarvest Elite to path (relative to AgentRadar root)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from homeharvest import (
     scrape_property,
