@@ -190,14 +190,17 @@ class Handler(BaseHTTPRequestHandler):
 
                 # Find best deal
                 best_deal = None
-                if not agent_props.empty:
-                    best_prop = agent_props.nlargest(1, 'investment_score').iloc[0]
-                    best_deal = {
-                        'address': f"{best_prop.get('full_street_line', '')}, {best_prop.get('city', '')}",
-                        'list_price': float(best_prop['list_price']) if pd.notna(best_prop.get('list_price')) else None,
-                        'investment_score': float(best_prop['investment_score']) if pd.notna(best_prop.get('investment_score')) else None,
-                        'property_url': best_prop.get('property_url')
-                    }
+                if not agent_props.empty and 'investment_score' in agent_props.columns:
+                    # Filter out NaN scores before finding best
+                    scored_props = agent_props[agent_props['investment_score'].notna()]
+                    if not scored_props.empty:
+                        best_prop = scored_props.nlargest(1, 'investment_score').iloc[0]
+                        best_deal = {
+                            'address': f"{best_prop.get('full_street_line', '')}, {best_prop.get('city', '')}",
+                            'list_price': float(best_prop['list_price']) if pd.notna(best_prop.get('list_price')) else None,
+                            'investment_score': float(best_prop['investment_score']) if pd.notna(best_prop.get('investment_score')) else None,
+                            'property_url': best_prop.get('property_url')
+                        }
 
                 # Build complete agent object
                 agent_data = {
