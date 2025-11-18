@@ -279,11 +279,23 @@ class Handler(BaseHTTPRequestHandler):
                         'min_price': float(safe_agent_get(agent, 'min_price', 0)) if pd.notna(safe_agent_get(agent, 'min_price')) else None,
                         'max_price': float(safe_agent_get(agent, 'max_price', 0)) if pd.notna(safe_agent_get(agent, 'max_price')) else None,
 
-                        # Specialization
-                        'price_category': spec.iloc[0]['price_category'] if not spec.empty and 'price_category' in spec.columns else None,
-                        'avg_sqft': float(spec.iloc[0].get('avg_sqft', 0)) if not spec.empty and 'avg_sqft' in spec.columns and pd.notna(spec.iloc[0].get('avg_sqft')) else None,
-                        'avg_beds': float(spec.iloc[0].get('avg_beds', 0)) if not spec.empty and 'avg_beds' in spec.columns and pd.notna(spec.iloc[0].get('avg_beds')) else None,
-                        'avg_baths': float(spec.iloc[0].get('avg_baths', 0)) if not spec.empty and 'avg_baths' in spec.columns and pd.notna(spec.iloc[0].get('avg_baths')) else None,
+                        # Specialization - safely extract with proper error handling
+                        'price_category': spec.iloc[0]['price_category'] if (not spec.empty and 'price_category' in spec.columns) else None,
+                        'avg_sqft': (
+                            float(spec.loc[spec.index[0], 'avg_sqft'])
+                            if (not spec.empty and 'avg_sqft' in spec.columns and pd.notna(spec.loc[spec.index[0], 'avg_sqft']))
+                            else None
+                        ) if (not spec.empty and 'avg_sqft' in spec.columns) else None,
+                        'avg_beds': (
+                            float(spec.loc[spec.index[0], 'avg_beds'])
+                            if (not spec.empty and 'avg_beds' in spec.columns and pd.notna(spec.loc[spec.index[0], 'avg_beds']))
+                            else None
+                        ) if (not spec.empty and 'avg_beds' in spec.columns) else None,
+                        'avg_baths': (
+                            float(spec.loc[spec.index[0], 'avg_baths'])
+                            if (not spec.empty and 'avg_baths' in spec.columns and pd.notna(spec.loc[spec.index[0], 'avg_baths']))
+                            else None
+                        ) if (not spec.empty and 'avg_baths' in spec.columns) else None,
 
                         # Investment insights
                         'avg_investment_score': float(agent_props['investment_score'].mean()) if 'investment_score' in agent_props.columns else None,
