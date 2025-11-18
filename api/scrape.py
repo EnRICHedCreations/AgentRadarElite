@@ -199,19 +199,32 @@ class Handler(BaseHTTPRequestHandler):
                                 except:
                                     return default
 
+                            # Use safe_get for all fields
+                            def safe_float(val):
+                                try:
+                                    return float(val) if pd.notna(val) else None
+                                except:
+                                    return None
+
+                            def safe_int(val):
+                                try:
+                                    return int(val) if pd.notna(val) else None
+                                except:
+                                    return None
+
                             listings.append({
                                 'address': f"{safe_get(prop, 'full_street_line')}, {safe_get(prop, 'city')}, {safe_get(prop, 'state')} {safe_get(prop, 'zip_code')}".strip(),
-                                'list_price': float(prop['list_price']) if 'list_price' in prop.index and pd.notna(prop['list_price']) else None,
-                                'investment_score': float(prop['investment_score']) if 'investment_score' in prop.index and pd.notna(prop['investment_score']) else None,
-                                'price_per_sqft': float(prop['price_per_sqft']) if 'price_per_sqft' in prop.index and pd.notna(prop['price_per_sqft']) else None,
-                                'days_on_mls': int(prop['days_on_mls']) if 'days_on_mls' in prop.index and pd.notna(prop['days_on_mls']) else None,
-                                'beds': int(prop['beds']) if 'beds' in prop.index and pd.notna(prop['beds']) else None,
-                                'baths': float(prop['full_baths']) if 'full_baths' in prop.index and pd.notna(prop['full_baths']) else None,
-                                'sqft': int(prop['sqft']) if 'sqft' in prop.index and pd.notna(prop['sqft']) else None,
-                                'lot_sqft': int(prop['lot_sqft']) if 'lot_sqft' in prop.index and pd.notna(prop['lot_sqft']) else None,
-                                'year_built': int(prop['year_built']) if 'year_built' in prop.index and pd.notna(prop['year_built']) else None,
+                                'list_price': safe_float(safe_get(prop, 'list_price', None)),
+                                'investment_score': safe_float(safe_get(prop, 'investment_score', None)),
+                                'price_per_sqft': safe_float(safe_get(prop, 'price_per_sqft', None)),
+                                'days_on_mls': safe_int(safe_get(prop, 'days_on_mls', None)),
+                                'beds': safe_int(safe_get(prop, 'beds', None)),
+                                'baths': safe_float(safe_get(prop, 'full_baths', None)),
+                                'sqft': safe_int(safe_get(prop, 'sqft', None)),
+                                'lot_sqft': safe_int(safe_get(prop, 'lot_sqft', None)),
+                                'year_built': safe_int(safe_get(prop, 'year_built', None)),
                                 'property_url': safe_get(prop, 'property_url', None),
-                                'tags': prop['tags'] if 'tags' in prop.index and pd.notna(prop['tags']) else []
+                                'tags': safe_get(prop, 'tags', [])
                             })
                         except Exception as listing_error:
                             print(f"[AgentRadar Elite] Error processing listing: {str(listing_error)}")
@@ -231,10 +244,16 @@ class Handler(BaseHTTPRequestHandler):
                                 except:
                                     return default
 
+                            def safe_float_prop(val):
+                                try:
+                                    return float(val) if pd.notna(val) else None
+                                except:
+                                    return None
+
                             best_deal = {
                                 'address': f"{safe_get_prop(best_prop, 'full_street_line')}, {safe_get_prop(best_prop, 'city')}",
-                                'list_price': float(best_prop['list_price']) if 'list_price' in best_prop.index and pd.notna(best_prop['list_price']) else None,
-                                'investment_score': float(best_prop['investment_score']) if 'investment_score' in best_prop.index and pd.notna(best_prop['investment_score']) else None,
+                                'list_price': safe_float_prop(safe_get_prop(best_prop, 'list_price', None)),
+                                'investment_score': safe_float_prop(safe_get_prop(best_prop, 'investment_score', None)),
                                 'property_url': safe_get_prop(best_prop, 'property_url', None)
                             }
 
@@ -262,9 +281,9 @@ class Handler(BaseHTTPRequestHandler):
 
                         # Specialization
                         'price_category': spec.iloc[0]['price_category'] if not spec.empty and 'price_category' in spec.columns else None,
-                        'avg_sqft': float(spec.iloc[0]['avg_sqft']) if not spec.empty and 'avg_sqft' in spec.columns and pd.notna(spec.iloc[0]['avg_sqft']) else None,
-                        'avg_beds': float(spec.iloc[0]['avg_beds']) if not spec.empty and 'avg_beds' in spec.columns and pd.notna(spec.iloc[0]['avg_beds']) else None,
-                        'avg_baths': float(spec.iloc[0]['avg_baths']) if not spec.empty and 'avg_baths' in spec.columns and pd.notna(spec.iloc[0]['avg_baths']) else None,
+                        'avg_sqft': float(spec.iloc[0].get('avg_sqft', 0)) if not spec.empty and 'avg_sqft' in spec.columns and pd.notna(spec.iloc[0].get('avg_sqft')) else None,
+                        'avg_beds': float(spec.iloc[0].get('avg_beds', 0)) if not spec.empty and 'avg_beds' in spec.columns and pd.notna(spec.iloc[0].get('avg_beds')) else None,
+                        'avg_baths': float(spec.iloc[0].get('avg_baths', 0)) if not spec.empty and 'avg_baths' in spec.columns and pd.notna(spec.iloc[0].get('avg_baths')) else None,
 
                         # Investment insights
                         'avg_investment_score': float(agent_props['investment_score'].mean()) if 'investment_score' in agent_props.columns else None,
