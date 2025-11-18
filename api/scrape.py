@@ -52,10 +52,10 @@ class Handler(BaseHTTPRequestHandler):
             min_listings = data.get('minListings', 2)
 
             if not zip_code:
-                self.send_error(400, "ZIP code is required")
+                self.send_error(400, "Location (ZIP code or city) is required")
                 return
 
-            print(f"[AgentRadar Elite] Scraping ZIP: {zip_code}")
+            print(f"[AgentRadar Elite] Scraping location: {zip_code}")
             print(f"[AgentRadar Elite] Preset: {preset}")
             if price_min or price_max:
                 print(f"[AgentRadar Elite] Price range: ${price_min or 0:,} - ${price_max or 'unlimited'}")

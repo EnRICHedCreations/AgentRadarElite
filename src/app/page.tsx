@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 interface Agent {
   agent_name: string;
@@ -75,6 +75,11 @@ export default function Home() {
   const [results, setResults] = useState<ScrapeResult | null>(null);
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
 
+  // Konami code easter egg for city search
+  const [konamiUnlocked, setKonamiUnlocked] = useState(false);
+  const [konamiSequence, setKonamiSequence] = useState<string[]>([]);
+  const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
   // Smart preset
   const [preset, setPreset] = useState('investor_friendly');
 
@@ -98,10 +103,39 @@ export default function Home() {
   const [tagExclude, setTagExclude] = useState<string[]>([]);
   const [tagMatchType, setTagMatchType] = useState<'any' | 'all' | 'exact'>('any');
 
+  // Konami code listener
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      setKonamiSequence(prev => {
+        const newSequence = [...prev, e.key].slice(-10);
+        if (newSequence.length === konamiCode.length) {
+          const matches = newSequence.every((key, i) => key === konamiCode[i]);
+          if (matches && !konamiUnlocked) {
+            setKonamiUnlocked(true);
+            // Play success sound
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZijYIG2S57+idTQ4OS6Lk77VhHAU7lNnyzXorBSp+zfDglkMKFF+56/CnVBILSKHh8bllHQQ2jdXx1IMqBSV5ye/ek0ILFl2/7OqlUxIOTKPm8LZiGwU8ltnzzHkrBCh9zO/gl0QLE2C56++oUxEMSJ/h8bhlHgU2jdXx1YMqBSV5ye/elEILFl2/7OqlUxIOTKPm8LZiGwU8ltnzzHkrBSh9zO/gl0QLE2C56++oUxEMSJ/h8bhlHgU2jdXx1YMqBSV5ye/elEILFl2/7OqlUxIOTKPm8LZiGwU8ltnzzHkrBSh9zO/gl0QLE2C56++oUxEMSJ/h8bhlHgU2jdXx1YMqBSV5ye/elEILFl2/7OqlUxIOTKPm8LZiGwU8ltnzzHkrBSh9zO/gl0QLE2C56++oUxEMSJ/h8bhlHgU2jdXx1YMqBSV5ye/elEILFl2/7OqlUxIOTKPm8LZiGwU8ltnzzHkrBSh9zO/gl0QLE2C56++oUxEMSJ/h8bhlHgU2jdXx1YMqBSV5ye/elEILFl2/7OqlUxIOTKPm8LZiGwU8ltnzzHkrBSh9zO/gl0QLE2C56++oUxEMSJ/h8bhlHgU2jdXx1YMqBSV5ye/elEILFl2/7OqlUxIOTKPm8LZiGwU8ltnzzHkrBSh9zO/gl0QLE2C56++oUxEMSJ/h8bhlHgU2jdXx1YMqBSV5ye/elEILFl2/7OqlUxIOTKPm8LZiGwU8ltnzzHkrBSh9zO/gl0QLE2C56++oUxEMSJ/h8bhlHgU2jdXx1YMqBSV5ye/elEIL');
+            audio.volume = 0.3;
+            audio.play().catch(() => {}); // Ignore errors if audio doesn't play
+          }
+        }
+        return newSequence;
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [konamiUnlocked]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!zipCode || zipCode.length !== 5) {
+    // Validate location input based on mode
+    if (!zipCode) {
+      alert(konamiUnlocked ? 'Please enter a city or ZIP code' : 'Please enter a valid 5-digit ZIP code');
+      return;
+    }
+
+    if (!konamiUnlocked && zipCode.length !== 5) {
       alert('Please enter a valid 5-digit ZIP code');
       return;
     }
@@ -297,19 +331,38 @@ export default function Home() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
           <form onSubmit={handleSearch}>
             <div className="grid md:grid-cols-3 gap-4 mb-4">
-              {/* ZIP Code */}
+              {/* ZIP Code / City */}
               <div>
                 <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-2">
-                  ZIP Code
+                  {konamiUnlocked ? (
+                    <span className="flex items-center gap-2">
+                      <span className="text-purple-600">✨ City or ZIP Code</span>
+                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold">UNLOCKED</span>
+                    </span>
+                  ) : (
+                    'ZIP Code'
+                  )}
                 </label>
                 <input
                   type="text"
                   id="zipCode"
                   value={zipCode}
-                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                  placeholder="Enter ZIP code"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  maxLength={5}
+                  onChange={(e) => {
+                    if (konamiUnlocked) {
+                      // City search mode - allow letters and spaces
+                      setZipCode(e.target.value);
+                    } else {
+                      // ZIP code only mode - digits only, max 5
+                      setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5));
+                    }
+                  }}
+                  placeholder={konamiUnlocked ? "Enter city or ZIP code" : "Enter ZIP code"}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                    konamiUnlocked
+                      ? 'border-purple-300 focus:ring-purple-500 bg-purple-50'
+                      : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  maxLength={konamiUnlocked ? undefined : 5}
                 />
               </div>
 
