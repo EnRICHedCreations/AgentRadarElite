@@ -65,7 +65,7 @@ class Handler(BaseHTTPRequestHandler):
                 'location': zip_code,
                 'listing_type': 'for_sale',
                 'preset': preset,
-                'require_agent_email': True,  # MUST have agent contact
+                'require_agent_email': False,  # Don't filter by email - we filter later
                 'mls_only': True,
                 'past_days': 365,
                 'enable_advanced_sort': True,
@@ -129,13 +129,20 @@ class Handler(BaseHTTPRequestHandler):
             print(f"[AgentRadar Elite] Found {len(properties)} properties")
 
             # Get wholesale-friendly agents
-            print(f"[AgentRadar Elite] Analyzing agents...")
+            print(f"[AgentRadar Elite] Analyzing agents with min_listings={min_listings}...")
+            print(f"[AgentRadar Elite] Total unique agents in properties: {properties['agent_name'].nunique() if 'agent_name' in properties.columns else 0}")
+
+            # Check how many properties have agent emails
+            if 'agent_email' in properties.columns:
+                props_with_email = properties['agent_email'].notna().sum()
+                print(f"[AgentRadar Elite] Properties with agent email: {props_with_email}/{len(properties)}")
+
             try:
                 wholesale_agents = get_wholesale_friendly_agents(
                     properties,
                     min_listings=min_listings
                 )
-                print(f"[AgentRadar Elite] Found {len(wholesale_agents)} wholesale agents")
+                print(f"[AgentRadar Elite] Found {len(wholesale_agents)} wholesale agents after filtering")
             except Exception as agent_error:
                 print(f"[AgentRadar Elite] Agent analysis error: {str(agent_error)}")
                 import traceback
