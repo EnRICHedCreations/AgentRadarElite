@@ -131,8 +131,10 @@ class Handler(BaseHTTPRequestHandler):
             # Filter out pending sales - only show active listings
             if 'status' in properties.columns:
                 initial_count = len(properties)
+                # Keep properties without status or with non-pending status
                 properties = properties[
-                    ~properties['status'].str.lower().isin(['pending', 'contingent', 'pending_continue_to_show'])
+                    properties['status'].isna() |
+                    (~properties['status'].str.lower().isin(['pending', 'contingent', 'pending_continue_to_show']))
                 ]
                 filtered_count = initial_count - len(properties)
                 print(f"[AgentRadar Elite] Filtered out {filtered_count} pending sales, {len(properties)} active listings remain")
