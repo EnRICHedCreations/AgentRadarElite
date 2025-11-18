@@ -128,6 +128,15 @@ class Handler(BaseHTTPRequestHandler):
 
             print(f"[AgentRadar Elite] Found {len(properties)} properties")
 
+            # Filter out pending sales - only show active listings
+            if 'status' in properties.columns:
+                initial_count = len(properties)
+                properties = properties[
+                    ~properties['status'].str.lower().isin(['pending', 'contingent', 'pending_continue_to_show'])
+                ]
+                filtered_count = initial_count - len(properties)
+                print(f"[AgentRadar Elite] Filtered out {filtered_count} pending sales, {len(properties)} active listings remain")
+
             # Get wholesale-friendly agents
             print(f"[AgentRadar Elite] Analyzing agents with min_listings={min_listings}...")
             print(f"[AgentRadar Elite] Total unique agents in properties: {properties['agent_name'].nunique() if 'agent_name' in properties.columns else 0}")
