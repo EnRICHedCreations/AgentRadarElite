@@ -138,11 +138,21 @@ class Handler(BaseHTTPRequestHandler):
                 print(f"[AgentRadar Elite] Properties with agent email: {props_with_email}/{len(properties)}")
 
             try:
+                # First get all agents to debug
+                from homeharvest.agent_broker import get_agent_activity
+                all_agents = get_agent_activity(properties)
+                print(f"[AgentRadar Elite] All agents before filtering: {len(all_agents)}")
+                if not all_agents.empty:
+                    print(f"[AgentRadar Elite] Sample agents: {all_agents[['agent_name', 'listing_count', 'agent_email', 'primary_phone']].head(3).to_dict('records')}")
+
                 wholesale_agents = get_wholesale_friendly_agents(
                     properties,
                     min_listings=min_listings
                 )
                 print(f"[AgentRadar Elite] Found {len(wholesale_agents)} wholesale agents after filtering")
+                if wholesale_agents.empty:
+                    print(f"[AgentRadar Elite] DEBUG - wholesale_agents is empty!")
+                    print(f"[AgentRadar Elite] DEBUG - Columns in all_agents: {list(all_agents.columns)}")
             except Exception as agent_error:
                 print(f"[AgentRadar Elite] Agent analysis error: {str(agent_error)}")
                 import traceback
