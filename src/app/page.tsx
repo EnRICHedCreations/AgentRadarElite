@@ -324,12 +324,16 @@ export default function Home() {
                   onChange={(e) => setPreset(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="investor_friendly">Investor Friendly</option>
-                  <option value="cash_flow">Cash Flow</option>
-                  <option value="value_add">Value Add</option>
-                  <option value="luxury_wholesale">Luxury Wholesale</option>
-                  <option value="distressed">Distressed</option>
-                  <option value="land">Land/Lots</option>
+                  <option value="investor_friendly">🎯 Investor Friendly</option>
+                  <option value="fixer_upper">🔨 Fixer Upper</option>
+                  <option value="luxury">💎 Luxury</option>
+                  <option value="family_friendly">👨‍👩‍👧‍👦 Family Friendly</option>
+                  <option value="starter_home">🏠 Starter Home</option>
+                  <option value="retirement">🌴 Retirement</option>
+                  <option value="pool_home">🏊 Pool Home</option>
+                  <option value="waterfront">🌊 Waterfront</option>
+                  <option value="acreage">🌾 Acreage/Land</option>
+                  <option value="no_hoa">🚫 No HOA</option>
                 </select>
               </div>
 
