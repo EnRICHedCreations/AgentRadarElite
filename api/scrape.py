@@ -67,11 +67,11 @@ class Handler(BaseHTTPRequestHandler):
                 'preset': preset,
                 'require_agent_email': True,  # MUST have agent contact
                 'mls_only': True,
-                'past_days': 365,
+                'past_days': 180,  # Reduced from 365 to speed up
                 'enable_advanced_sort': True,
                 'add_derived_fields': True,
                 'clean_data': True,
-                'limit': 200
+                'limit': 100  # Reduced from 200 to avoid timeout
             }
 
             # Add optional filters
@@ -291,3 +291,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
+
+# Vercel requires this export
+handler = Handler
